@@ -1,0 +1,20 @@
+export const CORRETORES = [
+  "Adriano Giuseppe",
+  "Carlos Roberto Souza Queiroz",
+  "Charles Miranda",
+  "Cristiano Dos Santos Durães",
+  "Denilson Soares dos Santos",
+  "Eduardo de Paiva Farias",
+  "Flavia de Oliveira Sá",
+  "Gabriel Custódio Medeiros Rocha",
+  "João Falcão",
+  "Johaine Dornelas Hadid",
+  "Joyce Ferreira Pinto de Souza",
+  "Karine Moura Ferreira",
+  "Laser CH.",
+  "Roberto M. Lima",
+  "Rodrigo Bastos de Araújo",
+  "Rosane da Silva Moura",
+  "Taquaraci Nunes Rodrigues",
+  "Thaisa Paulino Carneiro"
+].sort((a, b) => a.localeCompare(b));
