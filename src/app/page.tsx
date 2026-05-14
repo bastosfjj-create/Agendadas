@@ -98,19 +98,16 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchAgendamentos = async () => {
       try {
-        const result = await supabase.from('agendamentos').select('*');
+        const result = await supabase.from('agendamentos').select('*').order('created_at', { ascending: false });
         const data = result.data as unknown as Agendamento[];
         const error = result.error;
         
+        console.log("Dados do Supabase:", data);
+        
         if (error) throw error;
         
-        if (data && data.length > 0) {
-          const sorted = data.sort((a, b) => {
-            const dataA = new Date(`${a.data}T${a.horario}`);
-            const dataB = new Date(`${b.data}T${b.horario}`);
-            return dataA.getTime() - dataB.getTime();
-          });
-          setAgendamentos(sorted);
+        if (data) {
+          setAgendamentos(data);
         }
       } catch (error) {
         console.error("Erro ao buscar agendamentos:", error);
