@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CORRETORES } from "../../lib/constants";
+import { supabase } from "@/lib/supabase";
 
 export default function NovaVisita() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export default function NovaVisita() {
     hora: "",
     corretor: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleWhatsappChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, "");
@@ -33,12 +35,34 @@ export default function NovaVisita() {
     setFormData({ ...formData, whatsapp: maskedValue });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Aqui seria a integração com o backend
-    console.log("Dados do formulário:", formData);
-    alert("Visita agendada com sucesso! (Mock)");
-    router.push("/");
+    setIsSubmitting(true);
+    
+    try {
+      const { error } = await supabase.from('agendamentos').insert([
+        {
+          cliente_nome: formData.nome,
+          whatsapp: formData.whatsapp,
+          imovel: formData.imovel,
+          tipo: formData.tipo,
+          data: formData.data,
+          horario: formData.hora,
+          corretor: formData.corretor,
+          status: 'PENDENTE'
+        }
+      ]);
+
+      if (error) throw error;
+
+      alert("Visita agendada com sucesso!");
+      router.push("/");
+    } catch (error) {
+      console.error("Erro ao agendar visita:", error);
+      alert("Erro ao agendar visita. Por favor, tente novamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -181,9 +205,10 @@ export default function NovaVisita() {
           <div className="pt-4">
             <button
               type="submit"
-              className="w-full bg-primary hover:bg-primary-dark text-navy font-bold py-4 rounded-lg transition-all duration-300 shadow-[0_4px_14px_0_rgba(212,175,55,0.39)] hover:shadow-[0_6px_20px_rgba(212,175,55,0.23)] hover:-translate-y-0.5"
+              disabled={isSubmitting}
+              className={`w-full bg-primary hover:bg-primary-dark text-navy font-bold py-4 rounded-lg transition-all duration-300 shadow-[0_4px_14px_0_rgba(212,175,55,0.39)] ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-[0_6px_20px_rgba(212,175,55,0.23)] hover:-translate-y-0.5'}`}
             >
-              Confirmar Agendamento
+              {isSubmitting ? 'Aguarde...' : 'Confirmar Agendamento'}
             </button>
           </div>
         </form>
