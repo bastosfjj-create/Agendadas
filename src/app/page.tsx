@@ -119,10 +119,6 @@ export default function Dashboard() {
     fetchAgendamentos();
   }, []);
   
-  const [filtroTempo, setFiltroTempo] = useState("Todas");
-  const [filtroDataInicio, setFiltroDataInicio] = useState("");
-  const [filtroDataFim, setFiltroDataFim] = useState("");
-  const [filtroCorretor, setFiltroCorretor] = useState("Todos");
   const [usuarioLogado, setUsuarioLogado] = useState<string>("Gerente");
   
   const [simularSexta, setSimularSexta] = useState(false);
@@ -138,23 +134,7 @@ export default function Dashboard() {
   const [rescheduleData, setRescheduleData] = useState("");
   const [rescheduleHora, setRescheduleHora] = useState("");
 
-  const agendamentosFiltrados = agendamentos.filter(a => {
-    const isGerente = usuarioLogado === "Gerente";
-    const corretorSelecionado = isGerente ? filtroCorretor : usuarioLogado;
-    
-    if (corretorSelecionado !== "Todos" && a.corretor !== corretorSelecionado) return false;
-    
-    if (filtroTempo === "Semana") return isDateInCurrentWeek(a.data);
-    if (filtroTempo === "Mês") return isDateInCurrentMonth(a.data);
-    if (filtroTempo === "Ano") return isDateInCurrentYear(a.data);
-    if (filtroTempo === "Personalizado") {
-      if (!filtroDataInicio && !filtroDataFim) return true;
-      if (filtroDataInicio && a.data < filtroDataInicio) return false;
-      if (filtroDataFim && a.data > filtroDataFim) return false;
-      return true;
-    }
-    return true;
-  });
+
 
   const desmarcarVisita = (id: string) => {
     setAgendamentos(prev => prev.map(a => 
@@ -258,20 +238,9 @@ export default function Dashboard() {
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     
-    let periodoText = "Período: Todas as Visitas";
-    if (filtroTempo !== "Todas" && filtroTempo !== "Personalizado") {
-      periodoText = `Período: Esta ${filtroTempo}`;
-    } else if (filtroTempo === "Personalizado") {
-      periodoText = `Período: ${filtroDataInicio ? formatarData(filtroDataInicio) : 'Início'} a ${filtroDataFim ? formatarData(filtroDataFim) : 'Fim'}`;
-    }
-    
-    const isGerente = usuarioLogado === "Gerente";
-    const corretorSelecionado = isGerente ? filtroCorretor : usuarioLogado;
-    const corretorText = corretorSelecionado !== "Todos" ? ` | Corretor: ${corretorSelecionado}` : " | Corretor: Todos";
-    
-    doc.text(periodoText + corretorText, 14, 28);
+    doc.text("Período: Todas as Visitas | Corretor: Todos", 14, 28);
 
-    const tableData = agendamentosFiltrados.map(a => [
+    const tableData = agendamentos.map(a => [
       formatarData(a.data),
       a.horario,
       a.corretor,
@@ -320,7 +289,6 @@ export default function Dashboard() {
             value={usuarioLogado}
             onChange={e => {
               setUsuarioLogado(e.target.value);
-              if (e.target.value !== "Gerente") setFiltroCorretor("Todos");
             }}
             className="bg-dark-300 border border-dark-100 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-primary transition-colors appearance-none"
           >
@@ -404,64 +372,10 @@ export default function Dashboard() {
         </button>
       </div>
 
-      <div className="bg-dark-200 border border-dark-100 rounded-xl p-4 flex flex-col md:flex-row gap-4 shadow-sm items-end animate-in fade-in slide-in-from-top-2 duration-500">
-        <div className="w-full md:w-auto flex-1 max-w-xs">
-          <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wider font-semibold">Período</label>
-          <select 
-            value={filtroTempo}
-            onChange={e => setFiltroTempo(e.target.value)}
-            className="w-full bg-dark-300 border border-dark-100 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-primary transition-colors appearance-none"
-          >
-            <option value="Todas">Todas as Visitas</option>
-            <option value="Semana">Esta Semana</option>
-            <option value="Mês">Este Mês</option>
-            <option value="Ano">Este Ano</option>
-            <option value="Personalizado">Personalizado</option>
-          </select>
-        </div>
 
-        {filtroTempo === "Personalizado" && (
-          <div className="flex gap-2 w-full md:w-auto animate-in fade-in duration-300">
-            <div className="flex-1">
-              <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wider font-semibold">De</label>
-              <input 
-                type="date"
-                value={filtroDataInicio}
-                onChange={e => setFiltroDataInicio(e.target.value)}
-                className="w-full bg-dark-300 border border-dark-100 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-primary transition-colors [&::-webkit-calendar-picker-indicator]:invert"
-              />
-            </div>
-            <div className="flex-1">
-              <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wider font-semibold">Até</label>
-              <input 
-                type="date"
-                value={filtroDataFim}
-                onChange={e => setFiltroDataFim(e.target.value)}
-                className="w-full bg-dark-300 border border-dark-100 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-primary transition-colors [&::-webkit-calendar-picker-indicator]:invert"
-              />
-            </div>
-          </div>
-        )}
-
-        {usuarioLogado === "Gerente" && (
-          <div className="w-full md:w-auto flex-1 max-w-xs">
-            <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wider font-semibold">Corretor</label>
-            <select 
-              value={filtroCorretor}
-              onChange={e => setFiltroCorretor(e.target.value)}
-              className="w-full bg-dark-300 border border-dark-100 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-primary transition-colors appearance-none"
-            >
-              <option value="Todos">Todos os Corretores</option>
-              {CORRETORES.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
-        )}
-      </div>
 
       <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {agendamentosFiltrados.map((agendamento) => {
+        {agendamentos.map((agendamento) => {
           const statusAtual = calcularStatus(agendamento);
           
           return (
@@ -540,9 +454,9 @@ export default function Dashboard() {
           <div className="col-span-full py-12 text-center text-gray-500 bg-dark-200/50 rounded-xl border border-dark-100 border-dashed animate-pulse">
             Carregando agendamentos...
           </div>
-        ) : agendamentosFiltrados.length === 0 && (
+        ) : agendamentos.length === 0 && (
           <div className="col-span-full py-12 text-center text-gray-500 bg-dark-200/50 rounded-xl border border-dark-100 border-dashed">
-            Nenhum agendamento encontrado para estes filtros.
+            Nenhum agendamento encontrado no banco de dados.
           </div>
         )}
       </div>
