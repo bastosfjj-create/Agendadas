@@ -36,22 +36,6 @@ const statusStyles: Record<Status, string> = {
   Desmarcada: "bg-red-500/10 text-red-500 border-red-500/20",
 };
 
-const isDateInCurrentWeek = (dateStr: string) => {
-  const date = new Date(`${dateStr}T12:00:00`);
-  const today = new Date();
-  const startOfWeek = new Date(today);
-  const day = today.getDay();
-  const diff = today.getDate() - day + (day === 0 ? -6 : 1);
-  startOfWeek.setDate(diff);
-  startOfWeek.setHours(0,0,0,0);
-  
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 6);
-  endOfWeek.setHours(23,59,59,999);
-  
-  return date >= startOfWeek && date <= endOfWeek;
-}
-
 const isDateInNextWeek = (dateStr: string) => {
   const date = new Date(`${dateStr}T12:00:00`);
   const today = new Date();
@@ -66,18 +50,6 @@ const isDateInNextWeek = (dateStr: string) => {
   endOfNextWeek.setHours(23,59,59,999);
   
   return date >= startOfNextWeek && date <= endOfNextWeek;
-}
-
-const isDateInCurrentMonth = (dateStr: string) => {
-  const date = new Date(`${dateStr}T12:00:00`);
-  const today = new Date();
-  return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
-}
-
-const isDateInCurrentYear = (dateStr: string) => {
-  const date = new Date(`${dateStr}T12:00:00`);
-  const today = new Date();
-  return date.getFullYear() === today.getFullYear();
 }
 
 const calcularStatus = (agendamento: Agendamento): Status => {
@@ -99,16 +71,14 @@ export default function Dashboard() {
     const fetchAgendamentos = async () => {
       try {
         const result = await supabase.from('agendamentos').select('*').order('created_at', { ascending: false });
-        const data = result.data as unknown as Agendamento[];
+        const data = (result.data as unknown as Agendamento[]) || [];
         const error = result.error;
         
         console.log("Dados do Supabase:", data);
         
         if (error) throw error;
         
-        if (data) {
-          setAgendamentos(data);
-        }
+        setAgendamentos(data);
       } catch (error) {
         console.error("Erro ao buscar agendamentos:", error);
       } finally {
