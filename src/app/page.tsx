@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Calendar, Clock, User, Building, FileText } from "lucide-react";
 import { CORRETORES } from "../lib/constants";
+import { supabase } from "@/lib/supabase";
 
 type Status = "Agendada" | "Realizada" | "Reagendada" | "Desmarcada";
 
@@ -19,53 +20,13 @@ interface Agendamento {
   data: string;
   dataOriginal?: string;
   horario: string;
-  cliente: string;
+  cliente_nome: string;
+  whatsapp?: string;
   imovel: string;
   corretor: string;
-  tipo: "Moradia" | "Investimento";
+  tipo: string;
   statusManual?: "Desmarcada" | "Reagendada";
 }
-
-const agendamentosIniciais: Agendamento[] = [
-  {
-    id: "1",
-    data: "2026-05-12",
-    horario: "09:00",
-    cliente: "Roberto Marinho",
-    imovel: "Alma Ipanema",
-    corretor: CORRETORES[0],
-    tipo: "Moradia",
-  },
-  {
-    id: "2",
-    data: "2026-05-14",
-    horario: "11:30",
-    cliente: "João Dória",
-    imovel: "Pura",
-    corretor: CORRETORES[1],
-    tipo: "Investimento",
-  },
-  {
-    id: "3",
-    data: "2026-05-15",
-    dataOriginal: "2026-05-13",
-    horario: "14:00",
-    cliente: "Carlos Slim",
-    imovel: "Endless",
-    corretor: CORRETORES[2],
-    tipo: "Investimento",
-  },
-  {
-    id: "4",
-    data: "2026-05-16",
-    horario: "16:45",
-    cliente: "Jorge Paulo Lemann",
-    imovel: "Ilha Pura",
-    corretor: CORRETORES[3],
-    tipo: "Moradia",
-    statusManual: "Desmarcada",
-  },
-];
 
 const statusStyles: Record<Status, string> = {
   Realizada: "bg-green-500/10 text-green-500 border-green-500/20",
@@ -130,13 +91,32 @@ const calcularStatus = (agendamento: Agendamento): Status => {
 };
 
 export default function Dashboard() {
-  const [agendamentos, setAgendamentos] = useState<Agendamento[]>(() => {
-    return [...agendamentosIniciais].sort((a, b) => {
-      const dataA = new Date(`${a.data}T${a.horario}`);
-      const dataB = new Date(`${b.data}T${b.horario}`);
-      return dataA.getTime() - dataB.getTime();
-    });
-  });
+  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAgendamentos = async () => {
+      try {
+        const { data, error } = await supabase.from('agendamentos').select('*');
+        if (error) throw error;
+        
+        if (data) {
+          const sorted = data.sort((a, b) => {
+            const dataA = new Date(`${a.data}T${a.horario}`);
+            const dataB = new Date(`${b.data}T${b.horario}`);
+            return dataA.getTime() - dataB.getTime();
+          });
+          setAgendamentos(sorted);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar agendamentos:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAgendamentos();
+  }, []);
   
   const [filtroTempo, setFiltroTempo] = useState("Todas");
   const [filtroDataInicio, setFiltroDataInicio] = useState("");
@@ -244,7 +224,7 @@ export default function Dashboard() {
       formatarData(a.data),
       a.horario,
       a.corretor,
-      a.cliente,
+      a.cliente_nome,
       a.imovel,
       calcularStatus(a)
     ]);
@@ -294,7 +274,7 @@ export default function Dashboard() {
       formatarData(a.data),
       a.horario,
       a.corretor,
-      a.cliente,
+      a.cliente_nome,
       a.imovel,
       calcularStatus(a)
     ]);
@@ -511,7 +491,7 @@ export default function Dashboard() {
                 <p className="text-[9px] text-gray-500 mb-0.5 uppercase tracking-wider font-semibold">Cliente</p>
                 <p className="font-medium text-sm text-white truncate flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5 text-primary shrink-0 opacity-70" />
-                  {agendamento.cliente}
+                  {agendamento.cliente_nome}
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -555,7 +535,11 @@ export default function Dashboard() {
           </div>
         )})}
 
-        {agendamentosFiltrados.length === 0 && (
+        {isLoading ? (
+          <div className="col-span-full py-12 text-center text-gray-500 bg-dark-200/50 rounded-xl border border-dark-100 border-dashed animate-pulse">
+            Carregando agendamentos...
+          </div>
+        ) : agendamentosFiltrados.length === 0 && (
           <div className="col-span-full py-12 text-center text-gray-500 bg-dark-200/50 rounded-xl border border-dark-100 border-dashed">
             Nenhum agendamento encontrado para estes filtros.
           </div>
