@@ -51,6 +51,7 @@ export default function NovaVisita() {
           corretor: formData.corretor,
           status: 'PENDENTE'
         }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ] as any);
 
       if (error) throw error;
