@@ -52,6 +52,48 @@ const isDateInNextWeek = (dateStr: string) => {
   return date >= startOfNextWeek && date <= endOfNextWeek;
 }
 
+const calcularIntervaloDatas = (periodo: string, inicioManual: string, fimManual: string) => {
+  const hoje = new Date();
+  let inicio = new Date(hoje);
+  let fim = new Date(hoje);
+
+  const formatYYYYMMDD = (d: Date) => {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  if (periodo === "Semana") {
+    const diaSemana = hoje.getDay();
+    const diffSabado = diaSemana === 6 ? 0 : diaSemana + 1;
+    inicio.setDate(hoje.getDate() - diffSabado);
+    inicio.setHours(0, 0, 0, 0);
+
+    fim = new Date(inicio);
+    fim.setDate(inicio.getDate() + 6);
+    fim.setHours(23, 59, 59, 999);
+    return { inicio: formatYYYYMMDD(inicio), fim: formatYYYYMMDD(fim) };
+  } else if (periodo === "Mês") {
+    inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+    return { inicio: formatYYYYMMDD(inicio), fim: formatYYYYMMDD(fim) };
+  } else if (periodo === "Semestre") {
+    const semestre = Math.floor(hoje.getMonth() / 6);
+    inicio = new Date(hoje.getFullYear(), semestre * 6, 1);
+    fim = new Date(hoje.getFullYear(), (semestre + 1) * 6, 0);
+    return { inicio: formatYYYYMMDD(inicio), fim: formatYYYYMMDD(fim) };
+  } else if (periodo === "Ano") {
+    inicio = new Date(hoje.getFullYear(), 0, 1);
+    fim = new Date(hoje.getFullYear(), 11, 31);
+    return { inicio: formatYYYYMMDD(inicio), fim: formatYYYYMMDD(fim) };
+  } else if (periodo === "Manual") {
+    return { inicio: inicioManual || null, fim: fimManual || null };
+  }
+  
+  return { inicio: null, fim: null };
+};
+
 const calcularStatus = (agendamento: Agendamento): Status => {
   if (agendamento.statusManual) return agendamento.statusManual;
   if (agendamento.dataOriginal && agendamento.data !== agendamento.dataOriginal) return "Reagendada";
@@ -67,10 +109,33 @@ export default function Dashboard() {
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [filtroPeriodo, setFiltroPeriodo] = useState<string>("Todas");
+  const [dataInicio, setDataInicio] = useState<string>("");
+  const [dataFim, setDataFim] = useState<string>("");
+  const [filtroCorretor, setFiltroCorretor] = useState<string>("");
+  const [filtroEmpreendimento, setFiltroEmpreendimento] = useState<string>("");
+
   useEffect(() => {
     const fetchAgendamentos = async () => {
+      setIsLoading(true);
       try {
-        const result = await supabase.from('agendamentos').select('*').order('created_at', { ascending: false });
+        let query = supabase.from('agendamentos').select('*').order('created_at', { ascending: false });
+
+        if (filtroPeriodo !== "Todas") {
+          const { inicio, fim } = calcularIntervaloDatas(filtroPeriodo, dataInicio, dataFim);
+          if (inicio) query = query.gte('data', inicio);
+          if (fim) query = query.lte('data', fim);
+        }
+
+        if (filtroCorretor.trim() !== "") {
+          query = query.ilike('corretor', `%${filtroCorretor}%`);
+        }
+
+        if (filtroEmpreendimento.trim() !== "") {
+          query = query.ilike('imovel', `%${filtroEmpreendimento}%`);
+        }
+
+        const result = await query;
         const data = (result.data as unknown as Agendamento[]) || [];
         const error = result.error;
         
@@ -87,7 +152,7 @@ export default function Dashboard() {
     };
 
     fetchAgendamentos();
-  }, []);
+  }, [filtroPeriodo, dataInicio, dataFim, filtroCorretor, filtroEmpreendimento]);
   
   const [usuarioLogado, setUsuarioLogado] = useState<string>("Gerente");
   
@@ -343,6 +408,69 @@ export default function Dashboard() {
       </div>
 
 
+
+      <div className="bg-dark-200 border border-dark-100 rounded-xl p-4 flex flex-col md:flex-row gap-4 shadow-sm items-end animate-in fade-in slide-in-from-top-2 duration-500">
+        <div className="w-full md:w-auto flex-1 max-w-xs">
+          <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wider font-semibold">Período</label>
+          <select 
+            value={filtroPeriodo}
+            onChange={e => setFiltroPeriodo(e.target.value)}
+            className="w-full bg-dark-300 border border-dark-100 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-primary transition-colors appearance-none"
+          >
+            <option value="Todas">Todos os Períodos</option>
+            <option value="Semana">Esta Semana</option>
+            <option value="Mês">Este Mês</option>
+            <option value="Semestre">Este Semestre</option>
+            <option value="Ano">Este Ano</option>
+            <option value="Manual">Manual</option>
+          </select>
+        </div>
+
+        {filtroPeriodo === "Manual" && (
+          <div className="flex gap-2 w-full md:w-auto animate-in fade-in duration-300">
+            <div className="flex-1">
+              <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wider font-semibold">De</label>
+              <input 
+                type="date"
+                value={dataInicio}
+                onChange={e => setDataInicio(e.target.value)}
+                className="w-full bg-dark-300 border border-dark-100 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-primary transition-colors [&::-webkit-calendar-picker-indicator]:invert"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wider font-semibold">Até</label>
+              <input 
+                type="date"
+                value={dataFim}
+                onChange={e => setDataFim(e.target.value)}
+                className="w-full bg-dark-300 border border-dark-100 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-primary transition-colors [&::-webkit-calendar-picker-indicator]:invert"
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="w-full md:w-auto flex-1 max-w-xs">
+          <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wider font-semibold">Corretor</label>
+          <input 
+            type="text"
+            placeholder="Nome do corretor..."
+            value={filtroCorretor}
+            onChange={e => setFiltroCorretor(e.target.value)}
+            className="w-full bg-dark-300 border border-dark-100 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-primary transition-colors"
+          />
+        </div>
+
+        <div className="w-full md:w-auto flex-1 max-w-xs">
+          <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wider font-semibold">Empreendimento</label>
+          <input 
+            type="text"
+            placeholder="Nome do imóvel..."
+            value={filtroEmpreendimento}
+            onChange={e => setFiltroEmpreendimento(e.target.value)}
+            className="w-full bg-dark-300 border border-dark-100 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-primary transition-colors"
+          />
+        </div>
+      </div>
 
       <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {agendamentos.map((agendamento) => {
