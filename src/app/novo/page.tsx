@@ -48,8 +48,7 @@ export default function NovaVisita() {
           tipo: formData.tipo,
           data: formData.data,
           horario: formData.hora,
-          corretor: formData.corretor,
-          status: 'PENDENTE'
+          corretor: formData.corretor
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ] as any);

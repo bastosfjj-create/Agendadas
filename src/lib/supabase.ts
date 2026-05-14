@@ -13,7 +13,6 @@ export interface Database {
           tipo: string;
           data: string;
           horario: string;
-          status: string;
           corretor: string;
         };
         Insert: {
@@ -25,7 +24,6 @@ export interface Database {
           tipo: string;
           data: string;
           horario: string;
-          status: string;
           corretor: string;
         };
         Update: {
@@ -37,7 +35,6 @@ export interface Database {
           tipo?: string;
           data?: string;
           horario?: string;
-          status?: string;
           corretor?: string;
         };
       };
