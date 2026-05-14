@@ -64,10 +64,11 @@ const calcularIntervaloDatas = (periodo: string, inicioManual: string, fimManual
     return `${yyyy}-${mm}-${dd}`;
   };
 
-  if (periodo === "Semana") {
-    const diaSemana = hoje.getDay();
-    const diffSabado = diaSemana === 6 ? 0 : diaSemana + 1;
-    inicio.setDate(hoje.getDate() - diffSabado);
+  if (periodo === "ProximaSemana") {
+    let diasAteSabado = 6 - hoje.getDay();
+    if (diasAteSabado <= 0) diasAteSabado += 7;
+    
+    inicio.setDate(hoje.getDate() + diasAteSabado);
     inicio.setHours(0, 0, 0, 0);
 
     fim = new Date(inicio);
@@ -418,7 +419,7 @@ export default function Dashboard() {
             className="w-full bg-dark-300 border border-dark-100 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-primary transition-colors appearance-none"
           >
             <option value="Todas">Todos os Períodos</option>
-            <option value="Semana">Esta Semana</option>
+            <option value="ProximaSemana">Próxima Semana</option>
             <option value="Mês">Este Mês</option>
             <option value="Semestre">Este Semestre</option>
             <option value="Ano">Este Ano</option>
