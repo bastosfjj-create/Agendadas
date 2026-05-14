@@ -51,7 +51,7 @@ export default function NovaVisita() {
           corretor: formData.corretor,
           status: 'PENDENTE'
         }
-      ]);
+      ] as any);
 
       if (error) throw error;
 
