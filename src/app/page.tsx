@@ -25,6 +25,7 @@ interface Agendamento {
   imovel: string;
   corretor: string;
   tipo: string;
+  status: string;
   statusManual?: "Desmarcada" | "Reagendada";
 }
 
@@ -97,10 +98,13 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchAgendamentos = async () => {
       try {
-        const { data, error } = await supabase.from('agendamentos').select('*');
+        const result = await supabase.from('agendamentos').select('*');
+        const data = result.data as unknown as Agendamento[];
+        const error = result.error;
+        
         if (error) throw error;
         
-        if (data) {
+        if (data && data.length > 0) {
           const sorted = data.sort((a, b) => {
             const dataA = new Date(`${a.data}T${a.horario}`);
             const dataB = new Date(`${b.data}T${b.horario}`);
