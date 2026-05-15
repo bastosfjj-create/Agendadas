@@ -116,6 +116,28 @@ export default function Dashboard() {
   const [filtroCorretor, setFiltroCorretor] = useState<string>("");
   const [filtroEmpreendimento, setFiltroEmpreendimento] = useState<string>("");
 
+  const [usuarioLogado, setUsuarioLogado] = useState<string>("");
+  const [cargoReal, setCargoReal] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUserAndCargo = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const response = await supabase.from('perfis').select('cargo, nome').eq('id', user.id).single();
+        const perfil = response.data as { cargo: string, nome: string } | null;
+        
+        if (perfil?.cargo === 'admin') {
+           setCargoReal('admin');
+           setUsuarioLogado('Gerente');
+        } else {
+           setCargoReal('corretor');
+           setUsuarioLogado(perfil?.nome || user.email || ""); 
+        }
+      }
+    };
+    fetchUserAndCargo();
+  }, []);
+
   useEffect(() => {
     const fetchAgendamentos = async () => {
       setIsLoading(true);
@@ -155,7 +177,7 @@ export default function Dashboard() {
     fetchAgendamentos();
   }, [filtroPeriodo, dataInicio, dataFim, filtroCorretor, filtroEmpreendimento]);
   
-  const [usuarioLogado, setUsuarioLogado] = useState<string>("Gerente");
+
   
   const [simularSexta, setSimularSexta] = useState(false);
   type StatusEnvio = "Pendente" | "Corretor" | "Gerente";
@@ -319,21 +341,23 @@ export default function Dashboard() {
           <label htmlFor="simularSexta" className="text-xs text-primary font-bold uppercase tracking-wider cursor-pointer">Simular Sexta 17:00</label>
         </div>
         <div className="w-px h-4 bg-dark-100 hidden sm:block"></div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Simular Acesso:</span>
-          <select 
-            value={usuarioLogado}
-            onChange={e => {
-              setUsuarioLogado(e.target.value);
-            }}
-            className="bg-dark-300 border border-dark-100 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-primary transition-colors appearance-none"
-          >
-            <option value="Gerente">Gerente (Rangel Jr.)</option>
-            {CORRETORES.map(c => (
-              <option key={c} value={c}>Consultor: {c}</option>
-            ))}
-          </select>
-        </div>
+        {cargoReal === 'admin' && (
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Simular Acesso:</span>
+            <select 
+              value={usuarioLogado}
+              onChange={e => {
+                setUsuarioLogado(e.target.value);
+              }}
+              className="bg-dark-300 border border-dark-100 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-primary transition-colors appearance-none"
+            >
+              <option value="Gerente">Gerente (Rangel Jr.)</option>
+              {CORRETORES.map(c => (
+                <option key={c} value={c}>Consultor: {c}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* BANNER DE AVISO (Sexta-feira 17h) - Apenas para Consultores */}
