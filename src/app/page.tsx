@@ -261,7 +261,7 @@ export default function Dashboard() {
       corretor_id: userId,
       nome: usuarioLogado,
       data_referencia: refDateStr
-    } as any);
+    });
 
     if (!error) {
       setJaConfirmou(true);
