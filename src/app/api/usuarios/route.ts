@@ -1,9 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { createClient as createServerClient } from '@/utils/supabase/server';
 
 export async function POST(request: Request) {
   try {
+    const supabaseServer = createServerClient();
+    const { data: { user } } = await supabaseServer.auth.getUser();
+
+    if (!user || user.email !== 'bastosfjj@gmail.com') {
+      return NextResponse.json({ error: 'Acesso negado. Apenas o administrador (bastosfjj@gmail.com) pode cadastrar membros.' }, { status: 403 });
+    }
+
     const { nome, email, password, cargo } = await request.json();
 
     if (!nome || !email || !password || !cargo) {
