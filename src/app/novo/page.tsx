@@ -10,40 +10,31 @@ export default function NovaVisita() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     nome: "",
-    whatsapp: "",
     imovel: "",
-    tipo: "",
     data: "",
     hora: "",
     corretor: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userCargo, setUserCargo] = useState<string | null>(null);
 
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         window.location.href = '/login';
+      } else {
+        const { data: perfil } = await supabase.from('perfis').select('cargo, nome').eq('id', user.id).single();
+        if (perfil) {
+          setUserCargo(perfil.cargo);
+          if (perfil.cargo === 'corretor') {
+            setFormData(prev => ({ ...prev, corretor: perfil.nome || user.email || "" }));
+          }
+        }
       }
     };
     checkUser();
   }, []);
-
-  const handleWhatsappChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, "");
-    if (value.length > 11) value = value.slice(0, 11);
-    
-    // Máscara (XX) XXXXX-XXXX
-    let maskedValue = value;
-    if (value.length > 2) {
-      maskedValue = `(${value.slice(0, 2)}) ${value.slice(2)}`;
-    }
-    if (value.length > 7) {
-      maskedValue = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7)}`;
-    }
-    
-    setFormData({ ...formData, whatsapp: maskedValue });
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,15 +44,12 @@ export default function NovaVisita() {
       const { error } = await supabase.from('agendamentos').insert([
         {
           cliente_nome: formData.nome,
-          whatsapp: formData.whatsapp,
           imovel: formData.imovel,
-          tipo: formData.tipo,
           data: formData.data,
           horario: formData.hora,
           corretor: formData.corretor
         }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ] as any);
+      ]);
 
       if (error) throw error;
 
@@ -112,56 +100,22 @@ export default function NovaVisita() {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="whatsapp" className="block text-sm font-medium text-gray-300">
-              WhatsApp
+            <label htmlFor="imovel" className="block text-sm font-medium text-gray-300">
+              Imóvel de Interesse
             </label>
-            <input
-              type="text"
-              id="whatsapp"
+            <select
+              id="imovel"
               required
-              className="w-full bg-dark-300 border border-dark-100 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder-gray-600"
-              placeholder="(21) 99999-9999"
-              value={formData.whatsapp}
-              onChange={handleWhatsappChange}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label htmlFor="imovel" className="block text-sm font-medium text-gray-300">
-                Imóvel de Interesse
-              </label>
-              <select
-                id="imovel"
-                required
-                className="w-full bg-dark-300 border border-dark-100 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all appearance-none"
-                value={formData.imovel}
-                onChange={(e) => setFormData({ ...formData, imovel: e.target.value })}
-              >
-                <option value="" disabled className="text-gray-600">Selecione o imóvel</option>
-                <option value="Alma Ipanema">Alma Ipanema</option>
-                <option value="Pura">Pura</option>
-                <option value="Endless">Endless</option>
-                <option value="Ilha Pura">Ilha Pura</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="tipo" className="block text-sm font-medium text-gray-300">
-                Tipo
-              </label>
-              <select
-                id="tipo"
-                required
-                className="w-full bg-dark-300 border border-dark-100 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all appearance-none"
-                value={formData.tipo}
-                onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
-              >
-                <option value="" disabled className="text-gray-600">Selecione o tipo</option>
-                <option value="Moradia">Moradia</option>
-                <option value="Investimento">Short Stay / Investimento</option>
-              </select>
-            </div>
+              className="w-full bg-dark-300 border border-dark-100 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all appearance-none"
+              value={formData.imovel}
+              onChange={(e) => setFormData({ ...formData, imovel: e.target.value })}
+            >
+              <option value="" disabled className="text-gray-600">Selecione o imóvel</option>
+              <option value="Alma Ipanema">Alma Ipanema</option>
+              <option value="Pura">Pura</option>
+              <option value="Endless">Endless</option>
+              <option value="Ilha Pura">Ilha Pura</option>
+            </select>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -194,23 +148,25 @@ export default function NovaVisita() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="corretor" className="block text-sm font-medium text-gray-300">
-              Corretor Responsável
-            </label>
-            <select
-              id="corretor"
-              required
-              className="w-full bg-dark-300 border border-dark-100 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all appearance-none"
-              value={formData.corretor}
-              onChange={(e) => setFormData({ ...formData, corretor: e.target.value })}
-            >
-              <option value="" disabled className="text-gray-600">Selecione o corretor</option>
-              {CORRETORES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
+          {userCargo !== 'corretor' && (
+            <div className="space-y-2">
+              <label htmlFor="corretor" className="block text-sm font-medium text-gray-300">
+                Corretor Responsável
+              </label>
+              <select
+                id="corretor"
+                required
+                className="w-full bg-dark-300 border border-dark-100 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all appearance-none"
+                value={formData.corretor}
+                onChange={(e) => setFormData({ ...formData, corretor: e.target.value })}
+              >
+                <option value="" disabled className="text-gray-600">Selecione o corretor</option>
+                {CORRETORES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="pt-4">
             <button
