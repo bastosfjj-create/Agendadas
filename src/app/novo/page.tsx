@@ -50,7 +50,8 @@ export default function NovaVisita() {
           horario: formData.hora,
           corretor: formData.corretor
         }
-      ]);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ] as any);
 
       if (error) throw error;
 
