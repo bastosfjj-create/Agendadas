@@ -10,9 +10,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Todos os campos são obrigatórios' }, { status: 400 });
     }
 
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error("Missing Supabase Env Variables.");
+      return NextResponse.json({ error: 'Erro de configuração do servidor: Chave Mestra não encontrada.' }, { status: 500 });
+    }
+
     const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
       {
         auth: {
           autoRefreshToken: false,
