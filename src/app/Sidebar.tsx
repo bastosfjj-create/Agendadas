@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, CalendarPlus, Users, LogOut, Menu, X } from 'lucide-react'
+import { LayoutDashboard, CalendarPlus, Users, LogOut, Menu, X, List } from 'lucide-react'
 import { useState } from 'react'
 import { logout } from './actions'
 
@@ -12,6 +12,7 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
 
   const links = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/funil', label: 'Visitas (Funil)', icon: List },
     { href: '/novo', label: 'Nova Visita', icon: CalendarPlus },
     ...(isAdmin ? [{ href: '/usuarios', label: 'Gestão de Equipe', icon: Users }] : [])
   ]

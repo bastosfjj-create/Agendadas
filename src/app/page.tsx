@@ -144,7 +144,17 @@ export default function Dashboard() {
     const fetchAgendamentos = async () => {
       setIsLoading(true);
       try {
-        let query = supabase.from('agendamentos').select('*').order('created_at', { ascending: false });
+        const hoje = new Date();
+        const diasParaSabado = hoje.getDay() === 0 ? -1 : 6 - hoje.getDay();
+        const sabadoAtual = new Date(hoje);
+        sabadoAtual.setDate(hoje.getDate() + diasParaSabado);
+        const sabadoAtualStr = sabadoAtual.toISOString().split('T')[0];
+
+        let query = supabase.from('agendamentos')
+          .select('*')
+          .gte('data', sabadoAtualStr)
+          .order('data', { ascending: true })
+          .order('horario', { ascending: true });
 
         if (filtroPeriodo !== "Todas") {
           const { inicio, fim } = calcularIntervaloDatas(filtroPeriodo, dataInicio, dataFim);
