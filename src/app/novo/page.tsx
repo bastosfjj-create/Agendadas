@@ -24,7 +24,8 @@ export default function NovaVisita() {
       if (!user) {
         window.location.href = '/login';
       } else {
-        const { data: perfil } = await supabase.from('perfis').select('cargo, nome').eq('id', user.id).single();
+        const { data } = await supabase.from('perfis').select('cargo, nome').eq('id', user.id).single();
+        const perfil = data as { cargo: string, nome: string } | null;
         if (perfil) {
           setUserCargo(perfil.cargo);
           if (perfil.cargo === 'corretor') {
