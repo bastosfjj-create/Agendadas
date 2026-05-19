@@ -114,7 +114,7 @@ export default function FunilPage() {
                   return (
                     <tr key={agendamento.id} className="hover:bg-dark-300/50 transition-colors">
                       <td className="py-3 px-4 text-sm text-white font-medium">{formatarData(agendamento.data)}</td>
-                      <td className="py-3 px-4 text-sm text-gray-300">{agendamento.horario}</td>
+                      <td className="py-3 px-4 text-sm text-gray-300">{agendamento.horario.slice(0, 5)}</td>
                       <td className="py-3 px-4 text-sm text-white font-medium">{agendamento.cliente_nome}</td>
                       <td className="py-3 px-4 text-sm text-gray-300">{agendamento.imovel}</td>
                       <td className="py-3 px-4 text-sm text-gray-300">{agendamento.corretor}</td>

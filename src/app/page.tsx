@@ -118,6 +118,7 @@ export default function Dashboard() {
 
   const [usuarioLogado, setUsuarioLogado] = useState<string>("");
   const [cargoReal, setCargoReal] = useState<string | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
 
   useEffect(() => {
     const fetchUserAndCargo = async () => {
@@ -136,11 +137,13 @@ export default function Dashboard() {
       } else {
         window.location.href = '/login';
       }
+      setIsLoadingUser(false);
     };
     fetchUserAndCargo();
   }, []);
 
   useEffect(() => {
+    if (isLoadingUser) return;
     const fetchAgendamentos = async () => {
       setIsLoading(true);
       try {
@@ -198,7 +201,7 @@ export default function Dashboard() {
     };
 
     fetchAgendamentos();
-  }, [filtroPeriodo, dataInicio, dataFim, filtroCorretor, filtroEmpreendimento, cargoReal, usuarioLogado]);
+  }, [filtroPeriodo, dataInicio, dataFim, filtroCorretor, filtroEmpreendimento, cargoReal, usuarioLogado, isLoadingUser]);
   
 
   
@@ -284,7 +287,7 @@ export default function Dashboard() {
 
     const tableData = filtradosDiretoria.map(a => [
       formatarData(a.data),
-      a.horario,
+      a.horario.slice(0, 5),
       a.corretor,
       a.cliente_nome,
       a.imovel,
@@ -323,7 +326,7 @@ export default function Dashboard() {
 
     const tableData = agendamentos.map(a => [
       formatarData(a.data),
-      a.horario,
+      a.horario.slice(0, 5),
       a.corretor,
       a.cliente_nome,
       a.imovel,
@@ -542,7 +545,7 @@ export default function Dashboard() {
                 <div className="w-px h-8 bg-primary/20"></div>
                 <div className="flex flex-col items-center">
                   <Clock className="w-5 h-5 text-primary mb-0.5" />
-                  <span className="text-xl font-bold text-white tracking-wide leading-none">{agendamento.horario}</span>
+                  <span className="text-xl font-bold text-white tracking-wide leading-none">{agendamento.horario.slice(0, 5)}</span>
                 </div>
               </div>
             </div>
