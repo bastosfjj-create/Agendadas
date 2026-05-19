@@ -54,11 +54,20 @@ export default function FunilPage() {
 
       setIsLoading(true);
       try {
-        const { data, error } = await supabase
+        const perfilResponse = await supabase.from('perfis').select('cargo, nome').eq('id', user.id).single();
+        const perfil = perfilResponse.data as { cargo: string, nome: string } | null;
+
+        let query = supabase
           .from('agendamentos')
           .select('*')
           .order('data', { ascending: false })
           .order('horario', { ascending: false });
+
+        if (perfil?.cargo === 'corretor') {
+          query = query.eq('corretor', perfil.nome || user.email || "");
+        }
+
+        const { data, error } = await query;
 
         if (error) throw error;
         setAgendamentos((data as unknown as Agendamento[]) || []);

@@ -22,7 +22,8 @@ export default async function RootLayout({
 
   let isAdmin = false;
   if (user) {
-    isAdmin = user.email === 'bastosfjj@gmail.com';
+    const { data: perfil } = await supabase.from('perfis').select('cargo').eq('id', user.id).single();
+    isAdmin = perfil?.cargo === 'admin' || perfil?.cargo === 'gerente';
   }
 
   return (

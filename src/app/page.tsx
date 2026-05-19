@@ -126,8 +126,8 @@ export default function Dashboard() {
         const response = await supabase.from('perfis').select('cargo, nome').eq('id', user.id).single();
         const perfil = response.data as { cargo: string, nome: string } | null;
         
-        if (perfil?.cargo === 'admin') {
-           setCargoReal('admin');
+        if (perfil?.cargo === 'admin' || perfil?.cargo === 'gerente') {
+           setCargoReal(perfil?.cargo);
            setUsuarioLogado('Gerente');
         } else {
            setCargoReal('corretor');
@@ -163,6 +163,10 @@ export default function Dashboard() {
           .order('data', { ascending: true })
           .order('horario', { ascending: true });
 
+        if (cargoReal === 'corretor' && usuarioLogado) {
+          query = query.eq('corretor', usuarioLogado);
+        }
+
         if (filtroPeriodo !== "Todas") {
           const { inicio, fim } = calcularIntervaloDatas(filtroPeriodo, dataInicio, dataFim);
           if (inicio) query = query.gte('data', inicio);
@@ -194,7 +198,7 @@ export default function Dashboard() {
     };
 
     fetchAgendamentos();
-  }, [filtroPeriodo, dataInicio, dataFim, filtroCorretor, filtroEmpreendimento]);
+  }, [filtroPeriodo, dataInicio, dataFim, filtroCorretor, filtroEmpreendimento, cargoReal, usuarioLogado]);
   
 
   
