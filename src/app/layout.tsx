@@ -22,7 +22,8 @@ export default async function RootLayout({
 
   let isAdmin = false;
   if (user) {
-    const { data: perfil } = await supabase.from('perfis').select('cargo').eq('id', user.id).single();
+    const { data } = await supabase.from('perfis').select('cargo').eq('id', user.id).single();
+    const perfil = data as { cargo: string } | null;
     isAdmin = perfil?.cargo === 'admin' || perfil?.cargo === 'gerente';
   }
 
