@@ -95,6 +95,15 @@ const calcularIntervaloDatas = (periodo: string, inicioManual: string, fimManual
   return { inicio: null, fim: null };
 };
 
+const getProximaSegundaStr = () => {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1) + 7;
+  const proximaSegunda = new Date(d);
+  proximaSegunda.setDate(diff);
+  return proximaSegunda.toISOString().split('T')[0];
+};
+
 const calcularStatus = (agendamento: Agendamento): Status => {
   if (agendamento.statusManual) return agendamento.statusManual;
   if (agendamento.dataOriginal && agendamento.data !== agendamento.dataOriginal) return "Reagendada";
@@ -119,11 +128,18 @@ export default function Dashboard() {
   const [usuarioLogado, setUsuarioLogado] = useState<string>("");
   const [cargoReal, setCargoReal] = useState<string | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [userId, setUserId] = useState<string>("");
+
+  const [listaCorretoresDb, setListaCorretoresDb] = useState<string[]>([]);
+  const [corretoresConfirmados, setCorretoresConfirmados] = useState<string[]>([]);
+  const [jaConfirmou, setJaConfirmou] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
 
   useEffect(() => {
     const fetchUserAndCargo = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        setUserId(user.id);
         const response = await supabase.from('perfis').select('cargo, nome').eq('id', user.id).single();
         const perfil = response.data as { cargo: string, nome: string } | null;
         
@@ -206,12 +222,57 @@ export default function Dashboard() {
 
   
   const [simularSexta, setSimularSexta] = useState(false);
-  type StatusEnvio = "Pendente" | "Corretor" | "Gerente";
-  const [enviosSemanais, setEnviosSemanais] = useState<Record<string, StatusEnvio>>(() => {
-    const iniciais: Record<string, StatusEnvio> = {};
-    CORRETORES.forEach(c => iniciais[c] = "Pendente");
-    return iniciais;
-  });
+
+  const isSextaFeiraJanela = () => {
+    if (simularSexta) return true;
+    const now = new Date();
+    return now.getDay() === 5 && now.getHours() >= 17;
+  };
+
+  const fetchFechamentos = async () => {
+    const refDateStr = getProximaSegundaStr();
+    
+    const { data: fechamentos } = await supabase.from('fechamento_semanal').select('*').eq('data_referencia', refDateStr);
+    const confirmados = (fechamentos || []).map(f => f.nome);
+    setCorretoresConfirmados(confirmados);
+
+    if (cargoReal === 'corretor') {
+       setJaConfirmou(confirmados.includes(usuarioLogado));
+    } else {
+       const { data: perfis } = await supabase.from('perfis').select('nome').eq('cargo', 'corretor');
+       const nomesCorretores = (perfis || []).map(p => p.nome).filter(Boolean) as string[];
+       setListaCorretoresDb(nomesCorretores);
+    }
+  };
+
+  useEffect(() => {
+    if (isLoadingUser || !cargoReal) return;
+    if (simularSexta || isSextaFeiraJanela()) {
+      fetchFechamentos();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoadingUser, cargoReal, usuarioLogado, simularSexta]);
+
+  const confirmarAgenda = async () => {
+    setIsConfirming(true);
+    const refDateStr = getProximaSegundaStr();
+
+    const { error } = await supabase.from('fechamento_semanal').insert({
+      corretor_id: userId,
+      nome: usuarioLogado,
+      data_referencia: refDateStr
+    } as any);
+
+    if (!error) {
+      setJaConfirmou(true);
+      alert("Agenda confirmada com sucesso para a gerência!");
+      fetchFechamentos();
+    } else {
+      console.error(error);
+      alert("Erro ao confirmar agenda.");
+    }
+    setIsConfirming(false);
+  };
 
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
   const [rescheduleId, setRescheduleId] = useState<string | null>(null);
@@ -261,13 +322,7 @@ export default function Dashboard() {
     setRescheduleId(null);
   };
 
-  const isSextaFeiraJanela = () => {
-    if (simularSexta) return true;
-    const now = new Date();
-    return now.getDay() === 5 && now.getHours() === 17 && now.getMinutes() <= 30;
-  };
-
-  const gerarPdfDiretoria = () => {
+  const confirmarReagendamento = () => {
     const doc = new jsPDF();
     
     doc.setFont("helvetica", "bold");
@@ -280,7 +335,7 @@ export default function Dashboard() {
 
     const filtradosDiretoria = agendamentos.filter(a => {
       if (!isDateInNextWeek(a.data)) return false;
-      if (enviosSemanais[a.corretor] === "Pendente") return false;
+      if (!corretoresConfirmados.includes(a.corretor)) return false;
       if (calcularStatus(a) === "Desmarcada") return false;
       return true;
     });
@@ -387,18 +442,28 @@ export default function Dashboard() {
       </div>
 
       {/* BANNER DE AVISO (Sexta-feira 17h) - Apenas para Consultores */}
-      {usuarioLogado !== "Gerente" && isSextaFeiraJanela() && enviosSemanais[usuarioLogado] === "Pendente" && (
+      {usuarioLogado !== "Gerente" && isSextaFeiraJanela() && !jaConfirmou && (
         <div className="bg-gradient-to-r from-primary-dark/80 to-primary/80 border border-primary text-navy p-4 rounded-xl flex flex-col sm:flex-row justify-between items-center gap-4 shadow-lg animate-in fade-in slide-in-from-top-4 duration-500">
           <div>
-            <h3 className="font-bold text-lg">Atenção, {usuarioLogado}!</h3>
-            <p className="text-sm font-medium opacity-90">Por favor, confirme seus agendamentos para a próxima semana.</p>
+            <h3 className="font-bold text-lg">Fechamento de Agenda - Próxima Semana</h3>
+            <p className="text-sm font-medium opacity-90">Por favor, confirme todas as visitas cadastradas para a próxima semana.</p>
           </div>
           <button 
-            onClick={() => setEnviosSemanais(prev => ({ ...prev, [usuarioLogado]: "Corretor" }))}
-            className="bg-navy text-primary hover:bg-dark-300 px-6 py-2.5 rounded-lg font-bold transition-all shadow-md whitespace-nowrap"
+            onClick={confirmarAgenda}
+            disabled={isConfirming}
+            className={`bg-navy text-primary px-6 py-2.5 rounded-lg font-bold transition-all shadow-md whitespace-nowrap ${isConfirming ? 'opacity-50 cursor-not-allowed' : 'hover:bg-dark-300 hover:shadow-[0_4px_14px_0_rgba(212,175,55,0.39)] hover:-translate-y-0.5'}`}
           >
-            Confirmar Agendamentos da Próxima Semana
+            {isConfirming ? 'Enviando...' : 'Confirmar Todas as Visitas Cadastradas para a Próxima Semana'}
           </button>
+        </div>
+      )}
+
+      {usuarioLogado !== "Gerente" && isSextaFeiraJanela() && jaConfirmou && (
+        <div className="bg-green-500/10 border border-green-500/50 text-green-500 p-4 rounded-xl flex items-center justify-center gap-2 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          <span className="font-bold text-sm">Agenda confirmada com sucesso para a gerência!</span>
         </div>
       )}
 
@@ -407,8 +472,8 @@ export default function Dashboard() {
         <div className="bg-dark-200 border border-dark-100 rounded-xl p-6 shadow-sm animate-in fade-in duration-500">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-4">
             <div>
-              <h2 className="text-xl font-bold text-white">Status de Envio Semanal</h2>
-              <p className="text-sm text-gray-400 mt-1">Monitoramento de confirmações para a próxima semana</p>
+              <h2 className="text-xl font-bold text-white">Status de Confirmação da Equipe</h2>
+              <p className="text-sm text-gray-400 mt-1">Monitoramento de fechamentos para a próxima semana</p>
             </div>
             <button 
               onClick={gerarPdfDiretoria}
@@ -419,18 +484,16 @@ export default function Dashboard() {
             </button>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            {CORRETORES.map(c => {
-              const status = enviosSemanais[c];
-              const isConfirmado = status !== "Pendente";
-              const titleText = status === "Gerente" ? "Confirmado por Rangel Jr." : (status === "Corretor" ? "Confirmado pelo consultor" : "Pendente de envio");
+            {listaCorretoresDb.map(c => {
+              const isConfirmado = corretoresConfirmados.includes(c);
+              const titleText = isConfirmado ? "Confirmado" : "Não Sinalizou";
               
               return (
                 <div key={c} className="bg-dark-300 border border-dark-100 rounded-lg p-3 flex items-center gap-2.5 group">
-                  <button 
-                    onClick={() => setEnviosSemanais(prev => ({ ...prev, [c]: isConfirmado ? "Pendente" : "Gerente" }))}
+                  <div 
                     title={titleText}
-                    className={`w-3 h-3 rounded-full shadow-sm shrink-0 cursor-pointer transition-all hover:scale-125 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-dark-300 ${isConfirmado ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] focus:ring-green-500' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] focus:ring-red-500'}`}
-                    aria-label={`Alterar status de ${c}`}
+                    className={`w-3 h-3 rounded-full shadow-sm shrink-0 transition-all ${isConfirmado ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]'}`}
+                    aria-label={`Status de ${c}`}
                   />
                   <span className="text-xs font-medium text-gray-300 truncate group-hover:text-white transition-colors cursor-default" title={titleText}>
                     {c.split(" ")[0]} {c.split(" ").length > 1 ? c.split(" ").pop()?.charAt(0) + "." : ""}

@@ -58,6 +58,29 @@ export interface Database {
           nome?: string | null;
         };
       };
+      fechamento_semanal: {
+        Row: {
+          id: string;
+          created_at: string;
+          corretor_id: string;
+          nome: string;
+          data_referencia: string;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          corretor_id: string;
+          nome: string;
+          data_referencia: string;
+        };
+        Update: {
+          id?: string;
+          created_at?: string;
+          corretor_id?: string;
+          nome?: string;
+          data_referencia?: string;
+        };
+      };
     };
   };
 }
