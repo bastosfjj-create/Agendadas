@@ -322,7 +322,7 @@ export default function Dashboard() {
     setRescheduleId(null);
   };
 
-  const confirmarReagendamento = () => {
+  const gerarPdfDiretoria = () => {
     const doc = new jsPDF();
     
     doc.setFont("helvetica", "bold");
