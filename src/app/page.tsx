@@ -133,6 +133,8 @@ export default function Dashboard() {
            setCargoReal('corretor');
            setUsuarioLogado(perfil?.nome || user.email || ""); 
         }
+      } else {
+        window.location.href = '/login';
       }
     };
     fetchUserAndCargo();
