@@ -145,10 +145,14 @@ export default function Dashboard() {
       setIsLoading(true);
       try {
         const hoje = new Date();
-        const diasParaSabado = hoje.getDay() === 0 ? -1 : 6 - hoje.getDay();
+        const diasParaSabadoPassado = hoje.getDay() === 6 ? 0 : -(hoje.getDay() + 1);
         const sabadoAtual = new Date(hoje);
-        sabadoAtual.setDate(hoje.getDate() + diasParaSabado);
-        const sabadoAtualStr = sabadoAtual.toISOString().split('T')[0];
+        sabadoAtual.setDate(hoje.getDate() + diasParaSabadoPassado);
+        
+        const ano = sabadoAtual.getFullYear();
+        const mes = String(sabadoAtual.getMonth() + 1).padStart(2, '0');
+        const dia = String(sabadoAtual.getDate()).padStart(2, '0');
+        const sabadoAtualStr = `${ano}-${mes}-${dia}`;
 
         let query = supabase.from('agendamentos')
           .select('*')
