@@ -145,9 +145,12 @@ export default function Dashboard() {
       setIsLoading(true);
       try {
         const hoje = new Date();
-        const diasParaSabadoPassado = hoje.getDay() === 6 ? 0 : -(hoje.getDay() + 1);
         const sabadoAtual = new Date(hoje);
-        sabadoAtual.setDate(hoje.getDate() + diasParaSabadoPassado);
+        
+        // Se hoje já for sábado, getDay() === 6. Caso contrário, subtrai dias até encontrar o Sábado passado.
+        while (sabadoAtual.getDay() !== 6) {
+          sabadoAtual.setDate(sabadoAtual.getDate() - 1);
+        }
         
         const ano = sabadoAtual.getFullYear();
         const mes = String(sabadoAtual.getMonth() + 1).padStart(2, '0');

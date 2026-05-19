@@ -1,30 +1,50 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { criarUsuario } from './actions'
+import { useRouter } from 'next/navigation'
 
 export function FormCadastroUsuario() {
   const [loading, setLoading] = useState(false)
   const [msg, setMsg] = useState<{ text: string, type: 'error' | 'success' } | null>(null)
   const formRef = useRef<HTMLFormElement>(null)
+  const router = useRouter()
 
-  async function onSubmit(formData: FormData) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
     setLoading(true)
     setMsg(null)
     
-    const res = await criarUsuario(formData)
+    const formData = new FormData(e.currentTarget)
+    const nome = formData.get('nome')
+    const email = formData.get('email')
+    const password = formData.get('password')
+    const cargo = formData.get('cargo')
     
-    if (res.error) {
-      setMsg({ text: res.error, type: 'error' })
-    } else if (res.success) {
-      setMsg({ text: 'Usuário criado com sucesso!', type: 'success' })
-      formRef.current?.reset()
+    try {
+      const response = await fetch('/api/usuarios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome, email, password, cargo })
+      })
+      
+      const res = await response.json()
+
+      if (!response.ok || res.error) {
+        setMsg({ text: res.error || 'Erro ao cadastrar', type: 'error' })
+      } else if (res.success) {
+        setMsg({ text: 'Usuário criado com sucesso!', type: 'success' })
+        formRef.current?.reset()
+        router.refresh()
+      }
+    } catch {
+      setMsg({ text: 'Erro de conexão com o servidor', type: 'error' })
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (
-    <form ref={formRef} action={onSubmit} className="space-y-4">
+    <form ref={formRef} onSubmit={onSubmit} className="space-y-4">
       {msg && (
         <div className={`p-3 rounded-lg text-sm font-medium border ${
           msg.type === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-green-500/10 border-green-500/20 text-green-500'
